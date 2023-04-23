@@ -1,114 +1,175 @@
 import time
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import Select
+import json
 
 # function to click a button in a page
 def click_submit_button(driver):
-    submit = driver.find_element_by_xpath("//input[@type='submit']")
+    submit = driver.find_element(By.XPATH, "//input[@type='submit']")
     submit.click()
+    # Wait for the page to load
+    driver.implicitly_wait(10)
 
+# Record start time of execution
+start_of_exec_time = time.time()
 
-# Define the URL you want to scrape
+# URL to scrape
 url = "https://odusplus-ss.kau.edu.sa/PROD/xwckctlg.p_disp_dyn_ctlg"
 
-
-# Set the chrome options for running the browser in headless mode
-chrome_options = Options()
-chrome_options.add_argument("--headless")
-
-# Initialize a browser with the headless option
-driver = webdriver.Chrome("C:\\Users\\Wael\\Chromedriver\\chromedriver.exe", options=chrome_options)
+# Initialize a browser
+driver = webdriver.Chrome()
 
 # Load the page
 driver.get(url)
 
-# Calc. execution time for benchmark later
-start_time = time.time()
-
-# List of Semesters
-semesters = driver.find_elements_by_tag_name('option')
-
-print('Chosen Semester: '+ semesters[2].text)
-
-# Choose the current semester
-# Might change it later to loop through semesters and find current semester
-semesters[2].click()
+# Get the semester dropdown element and select the second option
+semester_dropdown = driver.find_element(By.ID, "term_input_id")
+select_semester = Select(semester_dropdown).select_by_index(2)
 
 # Click on the Submit button
 click_submit_button(driver)
 
-# Find the courses dropdown
-courses_dropdown = driver.find_elements_by_tag_name('option')
+# Get the course dropdown element and select multiple courses by their values
+course_dropdown = driver.find_element(By.ID, "subj_id")
+course_codes = ['ARAB', 'BL', 'CPIT', 'ELIA', 'IS', 'ISLS', 'MATH', 'STAT']
+select_course = Select(course_dropdown)
 
-# Filter Masters/PhD Courses
-crse_id_from = driver.find_element_by_id('crse_id_from')
+for code in course_codes:
+    select_course.select_by_value(code)
+
+# Filter Diploma/Masters/PhD Courses by setting course ID range
+crse_id_from = driver.find_element(By.ID, "crse_id_from")
 crse_id_from.send_keys('100')
-crse_id_to = driver.find_element_by_id('crse_id_to')
+crse_id_to = driver.find_element(By.ID, "crse_id_to")
 crse_id_to.send_keys('499')
 
+# Click on the Submit button
+click_submit_button(driver)
 
-for courseCode in range(len(courses_dropdown)):
+# Get the course titles for each course
+course_titles = driver.find_elements(By.XPATH, "//table[@id='COREQ']//td[@class='title']")
 
-            # Select the course from the dropdown
-            courses_dropdown[courseCode].click()
-            selected_course_index = courseCode
-
-            print('Chosen Course Code: ' + courses_dropdown[courseCode].text)
-
-            # Click on the Submit button
-            click_submit_button(driver)
-
-            courses = driver.find_elements_by_class_name('default')
-
-            for i in range(len(courses)):
-                course = courses[i]
-                course_details = course.text.split('\n')
-                course_title = course_details[0]
-                credit_hours = course_details[1]
-                section_btn = course.find_element_by_class_name('pldefault')
-                # will store in a list later
-                print('#' + str(i) + ' Course name: ' + course_title + '\n' + 'Credit hours: ' + credit_hours)
-
-                if section_btn.text == 'عرض الشعب':
-                    section_btn.click()
-
-                    sections = driver.find_elements_by_class_name('datadisplaytable')
-                    # Check if the sections table is available on the page
-                    if len(sections) > 0:
-                        print(sections[0].text + '\n')
-                    else:
-                        print('No sections available\n')
-
-                    driver.back()
-                else:
-                    print(section_btn.text + '\n')
-
-                # Find the course elements again after going back to the previous page
-                courses = driver.find_elements_by_class_name('default')
-
-            driver.back()
+# Get the course table element
+course_table = driver.find_elements(By.XPATH, "//td[@class='default']")
 
 
-            # Refresh the courses dropdown after going back to the previous page
-            courses_dropdown = driver.find_elements_by_tag_name('option')
-            courses_dropdown[selected_course_index].click()
+# Create a dictionary to store Courses and their Sections information
+section_info = {
+    'Courses': {}
+}
 
-end_time = time.time()
-execution_time = end_time - start_time
+# Loop through the course table and extract Courses information
+for i in range(len(course_table)):
+    # Extract course title, course name, credit hours, and section availability
+    course_info = course_table[i].text.split("\n")
 
-execution_time_minutes = int(execution_time // 60)
-execution_time_seconds = int(execution_time % 60)
+    # Ex. "ARAB 101"
+    course_title = course_info[0].split(" - ")[0]
+    # Ex. "ARAB 101 - اللغة العربية -1-"
+    course_name = course_info[0]
+    # Ex. 4
+    credit_hours = course_info[1][-6:-4].strip()
+    # Ex. if the section is available it will return "عرض الشعب" else "لاتوجد شعب متاحة في الفصل المحدد"
+    section_available = course_info[-1]
 
-print("Execution time: {} minutes {} seconds".format(execution_time_minutes, execution_time_seconds))
-# course_title = []
-# course_details = []
-# section_status = []
-# crn = []
-# section_num = []
-# section_type = []
-# section_time = []
-# section_days = []
-# section_bld = []
-# section_room = []
-# section_instr = []
+    # Create a key with the course_title in the section_info dictionary if it doesn't exist
+    if course_title not in section_info['Courses']:
+        section_info['Courses'][course_title] = {
+            'CourseName': course_name,
+            'CreditHours': credit_hours,
+            'Section(s)': []
+        }
+
+    # Click on the "عرض الشعب" button to see available sections for the course
+    view_section = course_table[i].find_elements(By.XPATH, "//td[@class='pldefault']")[i]
+
+    if "عرض الشعب" in section_available:
+        view_section.click()
+        # Record start time for scraping the course
+        start_time = time.time()
+
+        # Get all the section information from the table
+        crns = driver.find_elements(By.XPATH, "//td[@class='dddefault'][1]") #الرقم المرجعي
+        section_nums = driver.find_elements(By.XPATH, "//td[@class='dddefault'][2]") # الشعبة
+        section_types = driver.find_elements(By.XPATH, "//td[@class='dddefault'][3]") # نوع الجدول
+        section_times = driver.find_elements(By.XPATH, "//td[@class='dddefault'][4]") # الوقت
+        section_days = driver.find_elements(By.XPATH, "//td[@class='dddefault'][5]") # الأيام
+        section_blds = driver.find_elements(By.XPATH, "//td[@class='dddefault'][6]") # المبنى
+        section_rooms = driver.find_elements(By.XPATH, "//td[@class='dddefault'][7]") # الغرفة
+        section_instrs = driver.find_elements(By.XPATH, "//td[@class='dddefault'][8]") # الاساتذة
+
+        print("Scraping", course_title, "sections now...")
+
+        # Loop through all the sections and extract their information
+        for i in range(len(crns)):
+
+            crn = crns[i].text
+            section_num = section_nums[i].text
+            section_type = section_types[i].text
+            section_time = section_times[i].text
+            section_day = section_days[i].text
+            section_bld = section_blds[i].text
+            section_room = section_rooms[i].text
+            section_instr = section_instrs[i].text.replace('(P)', '').strip()
+
+            # Create a dictionary to store the section information
+            section = {
+                # 'اسم المقرر': course_name,
+                'الرقم المرجعي': crn,
+                'الشعبة': section_num,
+                'نوع الجدول': section_type,
+                'الوقت': section_time,
+                'الأيام': section_day,
+                'المبنى': section_bld,
+                'الغرفة': section_room,
+                'الاساتذة': section_instr
+            }
+
+            # Add the section information to the section_info dictionary
+            section_info["Courses"][course_title]["Section(s)"].append(section)
+
+        # Record end time of section scraping for this course
+        end_time = time.time()
+        # Calculate the execution time for scraping the sections of this course
+        execution_time = end_time - start_time
+
+        execution_time_minutes = int(execution_time // 60)
+        execution_time_seconds = int(execution_time % 60)
+        execution_time_milliseconds = int((execution_time % 1) * 1000)
+
+        # Print the execution time for scraping this course
+        print(f"Time it took to scrape {course_title}: {execution_time_minutes} minutes {execution_time_seconds} seconds {execution_time_milliseconds} milliseconds\n")
+
+        # Go back to the previous page that contains other courses information
+        driver.back()
+
+        # selenium.common.exceptions.StaleElementReferenceException: Message: stale element reference: stale element not found. Couldn't find course_table. To fix it:
+        # Refresh the course table element to avoid stale element reference error
+        course_table = driver.find_elements(By.XPATH, "//td[@class='default']")
+    else:
+        # If there are no available sections for this course, store the value of section_available which is "لاتوجد شعب متاحة في الفصل المحدد"
+        section_info["Courses"][course_title]["Section(s)"].append(section_available)
+
+
+# Convert section_info to JSON
+json_data = json.dumps(section_info, indent=4, ensure_ascii=False)
+
+# Write JSON data to a file
+with open('section_info.json', 'w', encoding='utf-8') as file:
+    file.write(json_data)
+
+print("JSON file created successfully.")
+
+# Record end time of execution
+end_of_exec_time = time.time()
+
+# Calculate the total execution time
+full_execution_time = end_of_exec_time - start_of_exec_time
+
+full_execution_time_minutes = int(full_execution_time // 60)
+full_execution_time_seconds = int(full_execution_time % 60)
+execution_time_milliseconds = int((full_execution_time % 1) * 1000)
+
+# Print the total execution time
+print(f"Execution time: {full_execution_time_minutes} minutes {full_execution_time_seconds} seconds {execution_time_milliseconds} milliseconds")
