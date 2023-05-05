@@ -1,15 +1,28 @@
+import pickle
 import random
-
+import numpy
+from DatasetPars import DatasetPars
 from My_Model import My_Model
 
-M = My_Model('C:\\Users\\yzeed\\Desktop\\json.json')
-Dataset=M.Loading_Dataset('C:\\Users\\yzeed\\Desktop\\json.json')
-while True:
-    Predicted_input = M.Model.predict(M.Predict())
-    Predicted_input = Predicted_input.argmax()
-    Predicted_input_Tag = M.Labelencoder.inverse_transform([Predicted_input])[0]
-    print('Chatbot: ', random.choice(M.Responses[Predicted_input_Tag]))
-    if Predicted_input_Tag == 'goodbye':
-        break
-# A loop that simulate chatbot session, it takes the user input and generate bot responses after it feeds the text to the model
+# loading dataset
+Dataset = DatasetPars("Model_data\\Dataset.json")
 
+try:
+    with open("Model_data.pkl", 'rb') as file:
+        M = pickle.load(file)
+        M.Load_model()
+except:
+    with open("Model_data.pkl", 'wb') as file:
+        M = My_Model("Model_data\\Dataset.json")
+
+while True:
+    User_input = input("You: ")
+    if User_input.lower() == "quit":
+        break
+    results = M.Model.predict([M.bag_of_words(User_input)])[0]
+    results_index = numpy.argmax(results)
+    tag = M.Dataset.Labels[results_index]
+    if results[results_index] > 0.80:
+        print('Chatbot: ', (random.choice(Dataset.Responce.get(tag))))
+    else:
+        print("i dont understand ")
