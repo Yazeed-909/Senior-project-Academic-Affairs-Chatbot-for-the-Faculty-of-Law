@@ -1,5 +1,6 @@
 import time
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
 import json
@@ -17,8 +18,12 @@ start_of_exec_time = time.time()
 # URL to scrape
 url = "https://odusplus-ss.kau.edu.sa/PROD/xwckctlg.p_disp_dyn_ctlg"
 
+# Run the browser in headless mode
+options = Options()
+options.add_argument("--headless=new")
+
 # Initialize a browser
-driver = webdriver.Chrome()
+driver = webdriver.Chrome(options=options)
 
 # Load the page
 driver.get(url)
