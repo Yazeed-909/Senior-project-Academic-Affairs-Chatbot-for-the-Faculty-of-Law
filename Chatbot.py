@@ -164,7 +164,7 @@ def HandelInput(extracted_number, User_input):
             # if that maximum value is more the 0.80 then take the tag given the index
             tag = Model_data.Dataset.Tags[results_index]
             # select a random message from a list of responses
-            message = random.choice(Model_data.Dataset.Responce.get(tag))
+            message = random.choice(Model_data.Dataset.Response.get(tag))
             # if the tag was "greeting then append the response with the menu"
             if tag == "greeting":
                 message = message + menu
@@ -182,7 +182,7 @@ def HandelInput(extracted_number, User_input):
         # if it was not text and a number from 1 to 8, then get the tag from "Index" dictionary
         tag = Model_data.Dataset.Index.get(extracted_number)
         # select a random message from a list of responses
-        message = random.choice(Model_data.Dataset.Responce.get(tag))
+        message = random.choice(Model_data.Dataset.Response.get(tag))
     return message, tag
 
 
