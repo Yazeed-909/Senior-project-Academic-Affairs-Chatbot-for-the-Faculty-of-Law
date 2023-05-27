@@ -124,8 +124,6 @@ def Chatbot():
 def Check_if_firstmessage(User_input):
     # Define a method for checking if the incoming message was the first one
     global First_message
-    print(User_input)
-    print(First_message)
     if First_message is True:
         # if it was the first message, the make the flag false and send
         # the following message with the services available
