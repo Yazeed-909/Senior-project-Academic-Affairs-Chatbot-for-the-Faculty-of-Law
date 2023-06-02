@@ -58,7 +58,7 @@ ml-dtypes==0.0.4
 msgpack==1.0.5
 multidict==6.0.4
 nltk==3.8.1
-numpy==1.23.5
+numpy
 oauthlib==3.2.2
 opt-einsum==3.3.0
 outcome==1.2.0
