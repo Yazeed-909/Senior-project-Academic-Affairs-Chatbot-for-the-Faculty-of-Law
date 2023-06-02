@@ -66,7 +66,7 @@ class DatabaseConnection(object):
 
     def GetStudyplan(self):
         # method to get the studyplan from the database
-        Studyplan = self.__DB_connection.child("Studyplan").get()
+        Studyplan = self.__DB_connection.child("Links").child("Studyplan").get()
         if Studyplan is None:
             raise firebase_admin.exceptions.NotFoundError("No record was found")
 
@@ -74,7 +74,7 @@ class DatabaseConnection(object):
 
     def GetAcademic_calender(self):
         # method to get the academic calendar from the database
-        Calender = self.__DB_connection.child("Academic_calender").get()
+        Calender = self.__DB_connection.child("Links").child("Academic_calender").get()
         if Calender is None:
             raise firebase_admin.exceptions.NotFoundError("No record was found")
 
@@ -299,7 +299,7 @@ class DatabaseConnection(object):
 
     def Get_finalexam(self):
         # method to get the final-exam from the database
-        Finalexam_file = self.__DB_connection.child("Finalexam").get()
+        Finalexam_file = self.__DB_connection.child("Links").child("Finalexam").get()
         if Finalexam_file is None:
             raise firebase_admin.exceptions.NotFoundError("No record was found")
         return Finalexam_file
@@ -321,7 +321,7 @@ class DatabaseConnection(object):
 
     def Get_midexam(self):
         # method to get the midterm-exam from the database
-        midexam_file = self.__DB_connection.child("Midexam").get()
+        midexam_file = self.__DB_connection.child("Links").child("Midexam").get()
         if midexam_file == None:
             raise firebase_admin.exceptions.NotFoundError("No record was found")
         return midexam_file
