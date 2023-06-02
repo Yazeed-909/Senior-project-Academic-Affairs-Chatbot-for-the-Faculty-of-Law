@@ -2,13 +2,19 @@ import time
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
-import json
+from DatabaseConnection import DatabaseConnection
 
 # Record start time of execution
 start_of_exec_time = time.time()
 
 # URL to scrape
 url = 'https://odusplus-ss.kau.edu.sa/PROD/xwckcapp.P_ProcProgMajrPara?ctlg_term=202330&levl_code=UG&camp_code=MCB&coll_code=LA&std_att=REGL&dept_code=0000&majr_conc=LAW%7E%25&program=BS-LAW-LA&submit_btn=تنفيــذ'
+
+# Establish a db connection
+DBconnection = DatabaseConnection.GetDBConnection()
+
+# Delete previously stored courses sections to be replaced with new one
+DBconnection.Delete_SectionInfo()
 
 # Run the browser in headless mode
 options = Options()
@@ -29,9 +35,7 @@ credit_hours = driver.find_elements(By.XPATH, "//table[@id='summary_tab']//td[@c
 view_section = driver.find_elements(By.XPATH, "//table[@id='summary_tab']//td[@class='default'][1]//a[text()='الشعب']")
 
 # Create a dictionary to store Courses and their Sections information
-section_info = {
-    'Courses': {}
-}
+section_info = {}
 
 # Loop to extract Courses information and their sections
 for i in range(len(course_codes)):
@@ -39,8 +43,8 @@ for i in range(len(course_codes)):
     course_title = course_codes[i].text + " " + course_nums[i].text
 
     # Create a key with the course_title in the section_info dictionary if it doesn't exist
-    if course_title not in section_info["Courses"]:
-        section_info["Courses"][course_title] = {
+    if course_title not in section_info:
+        section_info[course_title] = {
             'CourseName': course_names[i].text,
             'CreditHours': credit_hours[i].text,
             'Section(s)': {}
@@ -54,15 +58,15 @@ for i in range(len(course_codes)):
     # Click on "الشعب" text to see available sections for the course
     view_section[i].click()
 
-    crns = driver.find_elements(By.XPATH, "//td[@class='dddefault'][1]") #الرقم المرجعي
-    section_nums = driver.find_elements(By.XPATH, "//td[@class='dddefault'][2]") # الشعبة
-    section_types = driver.find_elements(By.XPATH, "//td[@class='dddefault'][3]") # نوع الجدول
-    section_times = driver.find_elements(By.XPATH, "//td[@class='dddefault'][4]") # الوقت
-    section_days = driver.find_elements(By.XPATH, "//td[@class='dddefault'][5]") # الأيام
-    section_blds = driver.find_elements(By.XPATH, "//td[@class='dddefault'][6]") # المبنى
-    section_rooms = driver.find_elements(By.XPATH, "//td[@class='dddefault'][7]") # الغرفة
-    section_instrs = driver.find_elements(By.XPATH, "//td[@class='dddefault'][8]") # الاساتذة
-    section_links = driver.find_elements(By.XPATH, "//td[@class='dddefault'][9]/a") # تفاصيل (this contains the url of the section and is used to merge lectures of same CRN)
+    crns = driver.find_elements(By.XPATH, "//td[@class='dddefault'][1]")  # الرقم المرجعي
+    section_nums = driver.find_elements(By.XPATH, "//td[@class='dddefault'][2]")  # الشعبة
+    section_types = driver.find_elements(By.XPATH, "//td[@class='dddefault'][3]")  # نوع الجدول
+    section_times = driver.find_elements(By.XPATH, "//td[@class='dddefault'][4]")  # الوقت
+    section_days = driver.find_elements(By.XPATH, "//td[@class='dddefault'][5]")  # الأيام
+    section_blds = driver.find_elements(By.XPATH, "//td[@class='dddefault'][6]")  # المبنى
+    section_rooms = driver.find_elements(By.XPATH, "//td[@class='dddefault'][7]")  # الغرفة
+    section_instrs = driver.find_elements(By.XPATH, "//td[@class='dddefault'][8]")  # الاساتذة
+    section_links = driver.find_elements(By.XPATH, "//td[@class='dddefault'][9]/a")  # تفاصيل (this contains the url of the section and is used to merge lectures of same CRN)
 
     # Loop through all the sections and extract their information
     for i in range(len(crns)):
@@ -85,8 +89,8 @@ for i in range(len(course_codes)):
             section_room = "عن بُعد"
 
         # Check if the section is already in the section_info dictionary, if not, add it.
-        if section_link_crn not in section_info["Courses"][course_title]["Section(s)"]:
-            section_info["Courses"][course_title]["Section(s)"][section_link_crn] = {
+        if section_link_crn not in section_info[course_title]["Section(s)"]:
+            section_info[course_title]["Section(s)"][section_link_crn] = {
                 'الشعبة': section_num,
                 'نوع الجدول': section_type,
                 'الوقت': section_time,
@@ -99,7 +103,7 @@ for i in range(len(course_codes)):
 
         else:
             # If the section is already in the dictionary, add other lectures that belongs to the existing section using CRN as the key.
-            existing_section = section_info["Courses"][course_title]["Section(s)"][section_link_crn]['محاضرات أخرى']
+            existing_section = section_info[course_title]["Section(s)"][section_link_crn]['محاضرات أخرى']
 
             # Create a dictionary to store the section information
             section = {
@@ -124,17 +128,13 @@ for i in range(len(course_codes)):
     # Print the execution time for scraping this course
     print(f"Time it took to scrape {course_title}: {execution_time_minutes} minutes {execution_time_seconds} seconds {execution_time_milliseconds} milliseconds\n")
 
+    # Insert data to database
+    DBconnection.Insert_SectionInfo(section_info)
+
     # Go back to the previous page that contains other courses information
     driver.back()
 
-# Convert section_info to JSON
-json_data = json.dumps(section_info, indent=4, ensure_ascii=False)
-
-# Write JSON data to a file
-with open('section_info.json', 'w', encoding='utf-8') as file:
-    file.write(json_data)
-
-print("JSON file created successfully.")
+print("Sections information was inserted in the database successfully.")
 
 # Record end time of execution
 end_of_exec_time = time.time()

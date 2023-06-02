@@ -3,10 +3,17 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.chrome.options import Options
 from hijridate import Hijri, Gregorian
+from DatabaseConnection import DatabaseConnection
 import json
 
 # URL to scrape
 url = "https://lpcal.kau.edu.sa/AdmissionCal.aspx"
+
+# Establish a db connection
+DBconnection=DatabaseConnection.GetDBConnection()
+
+# Delete previously stored dates to be replaced with new one
+DBconnection.Delete_Importantdate()
 
 # Run the browser in headless mode
 options = Options()
@@ -35,10 +42,6 @@ dates_from = driver.find_elements(By.XPATH, "//table[@class='mGrid']//td[2]")
 dates_to = driver.find_elements(By.XPATH, "//table[@class='mGrid']//td[3]")
 statuses = driver.find_elements(By.XPATH, "//table[@class='mGrid']//td[4]/img")
 
-# Create a dictionary to store the dates
-important_dates = {
-    'Dates': []
-}
 
 # Loop through the table data and scrape important dates
 for i in range(len(events)):
@@ -59,37 +62,16 @@ for i in range(len(events)):
     date_to_gregorian = date_to_gregorian.dmyformat()
     date_to_gregorian = json.dumps(date_to_gregorian, default=str)
 
-    # Get status by fetching the url of the image that contains the status
-    status = statuses[i].get_attribute('src')
-
-    # Set the status based on the name of image uploaded
-    if "recent" in status:
-        status = "حاليا"
-    elif "finish" in status:
-        status = "انتهى"
-    elif "soon" in status:
-        status = "قريبا"
-    else:
-        status = "غير معروف"
-
     # Create a dictionary to store every date information
     info = {
         'الحدث': event,
         'من تاريخ (هجري)': date_from,
         'من تاريخ (ميلادي)': date_from_gregorian.replace('\"', ''),
         'إلى تاريخ (هجري)': date_to,
-        'إلى تاريخ (ميلادي)': date_to_gregorian.replace('\"', ''),
-        'الحالة': status
+        'إلى تاريخ (ميلادي)': date_to_gregorian.replace('\"', '')
     }
 
-    # Append the dictionary to the "Dates" key in the "important_dates" dictionary
-    important_dates['Dates'].append(info)
+    # Insert data to database
+    DBconnection.Insert_Importantdate(info)
 
-# Convert important_dates to JSON
-json_data = json.dumps(important_dates, indent=4, ensure_ascii=False)
-
-# Write JSON data to a file
-with open('important_dates.json', 'w', encoding='utf-8') as file:
-    file.write(json_data)
-
-print("JSON file created successfully.")
+print("Important Dates Data was inserted in the database successfully!")
