@@ -1,17 +1,16 @@
+# -- coding: utf-8 --
 import logging
 import os
 import pickle
 import random
 import re
-import emoji
 import firebase_admin
-from firebase_admin import exceptions
 import numpy
+from firebase_admin import exceptions
 from firebase_admin.exceptions import FirebaseError
 from flask import Flask, request
 from pyarabic.araby import strip_tashkeel, strip_tatweel
 from twilio.base.exceptions import TwilioRestException
-
 from twilio.rest import Client
 from DatabaseConnection import DatabaseConnection
 
@@ -19,9 +18,10 @@ app = Flask(__name__)
 First_message = True
 attempts = 0
 # The list of offered services
+
 menu = \
     "الخدمات التي استطيع خدمتك فيها حاليا:\n\n1️⃣ الخطة الدراسية.\n2️⃣ التقويم الاكاديمي.\n3️⃣ قاعات المواد.\n4️⃣ " \
-    "بيانات التواصل الرسمية مع الكلية.\n5️⃣ بيانات اعضاء هيئة التدريس والساعات المكتبية.\n6️⃣ الاختبارات " \
+    "بيانات التواصل الرسمية مع الكلية.\n5️⃣ بيانات اعضاء هيئة التدريس.\n6️⃣ الاختبارات " \
     "النصفية.\n7️⃣ الاختبارات النهائية.\n8️⃣ مواعيد مهمة.\n\nيرجى كتابة اي من الاستفسارات الاتية لاستطيع خدمتك او " \
     "بامكانك كتابة الرقم للاختيار من القائمة."
 
@@ -100,6 +100,12 @@ def Chatbot():
         if tag == "studyplan":
             Studyplan(message)
             return ""
+        if tag == "faculty_office" and message == "":
+            Faculty_office(message,User_input)
+            return ""
+        if tag == "section_info" and message == "":
+            Section_info(message,User_input)
+            return ""
         if tag == "impotent_dates":
             Important_dates(message)
             return ""
@@ -136,6 +142,12 @@ def Check_if_firstmessage(User_input):
         # if no then check if it contains number the extract it to use it for selecting from the menu
         # if it doesn't have numbers, it will return None
         # after that the result will be given to HandelInput()
+
+        if "عرض بيانات" in User_input:
+            return "","faculty_office"
+        if "عرض شعبة" in User_input:
+            return "","section_info"
+
         extracted_number = extract_number(User_input)
 
         message, tag = HandelInput(extracted_number, User_input)
@@ -144,11 +156,10 @@ def Check_if_firstmessage(User_input):
 
 def HandelInput(extracted_number, User_input):
     # Define a method for dealing with text and numbers
-
-    # counter used for the number of attempts
-    global attempts
     tag = "no_tag"
-    message = ""
+    # if the text was not known by the model, then the message will be the following
+    message = "عذرا لم استطع فهم استفسارك،ولكن استطيع خدمتك حالياً في المواضيع الاتية:" + menu
+    message = re.sub("الخدمات التي استطيع خدمتك فيها حاليا:", "", message)
 
     if extracted_number is None:
         # if extracted_number is None (text) then strip the unwanted chars
@@ -165,19 +176,10 @@ def HandelInput(extracted_number, User_input):
             tag = Model_data.Dataset.Tags[results_index]
             # select a random message from a list of responses
             message = random.choice(Model_data.Dataset.Response.get(tag))
-            # if the tag was "greeting then append the response with the menu"
+            # if the tag was "greeting" then append the response with the menu
             if tag == "greeting":
-                message = message + menu
+                message = message + " " + menu
 
-        else:
-            # if the text was not known by the model, then the message will be the following
-            message = "عذرا لم افهم ما كتبت,ممكن تعيد صياغة استفسارك مرة اخرى؟."
-            attempts += 1
-            if attempts == 2:
-                # if the attempts reached 2 then the message will be the following plus the menu
-                message = "عذرا لم استطع فهم استفسارك،ولكن استطيع خدمتك حالياً في المواضيع الاتية:" + menu
-                message = re.sub("الخدمات التي استطيع خدمتك فيها حاليا:", "", message)
-                attempts = 0
     elif 8 >= extracted_number >= 1:
         # if it was not text and a number from 1 to 8, then get the tag from "Index" dictionary
         tag = Model_data.Dataset.Index.get(extracted_number)
@@ -195,6 +197,23 @@ def Studyplan(message):
     except firebase_admin.exceptions.NotFoundError:
         Send(None, "عذرا لم استطع ايجاد الخطة الدراسية")
 
+def Faculty_office(message,User_input):
+
+    try:
+        facultyOffice = DBconnection.GetFacultyMembersOfficeHours(User_input)
+
+        Send(None, facultyOffice)
+    except firebase_admin.exceptions.NotFoundError:
+        return ""
+
+def Section_info(message,User_input):
+
+    try:
+        sectionInfo = DBconnection.Get_SectionInfo(User_input)
+        print(sectionInfo)
+        Send(None, sectionInfo)
+    except firebase_admin.exceptions.NotFoundError:
+        return ""
 
 def Academic_calender(message):
     # define a method that is responsible for getting
@@ -240,7 +259,7 @@ def Midexam(message):
         Send(None, "عذرا لم يتم العثور على جدول الاختبارات النصفية")
 
 
-def Send(Media_url , Message):
+def Send(Media_url, Message):
     # define a method that is responsible for sending the message to user by taking
     # the number, message, and url if applicable
     client.messages.create(
