@@ -1,15 +1,14 @@
 import json
 import os
-import re
 from datetime import datetime, date
 from string import Template
-
 import firebase_admin
 from firebase_admin import credentials, db, exceptions
 from firebase_admin.auth import CertificateFetchError
 
 Database_certificate_path = os.environ.get("certificate_path")
 Database_url = os.environ.get("database_url")
+
 if Database_certificate_path is None or Database_url is None:
     raise EnvironmentError("environment value not found")
 
