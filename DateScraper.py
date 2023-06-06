@@ -4,6 +4,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import NoSuchElementException, WebDriverException
 from hijridate import Hijri, Gregorian
+from DatabaseConnection import DatabaseConnection
 
 class DateScraper:
     def __init__(self):
@@ -22,9 +23,6 @@ class DateScraper:
         self.info = {}
 
     def save_to_db(self):
-        # Import DatabaseConnection inside the method to avoid circular import
-        from DatabaseConnection import DatabaseConnection
-
         # Establish a database connection
         DBconnection = DatabaseConnection.GetDBConnection()
 
