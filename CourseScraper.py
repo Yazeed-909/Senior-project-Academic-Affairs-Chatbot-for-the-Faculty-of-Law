@@ -3,6 +3,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException, WebDriverException
+from DatabaseConnection import DatabaseConnection
 
 class CourseScraper:
     def __init__(self):
@@ -21,9 +22,6 @@ class CourseScraper:
         self.section_info = {}
 
     def save_to_db(self):
-        # Import DatabaseConnection inside the method to avoid circular import
-        from DatabaseConnection import DatabaseConnection
-
         # Establish a database connection
         DBconnection = DatabaseConnection.GetDBConnection()
 
