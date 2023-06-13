@@ -27,6 +27,8 @@ menu = \
 
 # get twilio sid and auth token that are stored in the environment values
 try:
+
+
     account_sid = os.environ.get('TWILIO_ACCOUNT_SID')
     auth_token = os.environ.get('TWILIO_AUTH_TOKEN')
     if account_sid is None or auth_token is None:
@@ -272,3 +274,5 @@ def Send(Media_url, Message):
 # run only if it is in a Python interpreter
 if __name__ == "__main__":
     app.run(debug=True, threaded=True)
+
+

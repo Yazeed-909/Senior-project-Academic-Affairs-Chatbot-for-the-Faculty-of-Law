@@ -6,6 +6,7 @@ from selenium.common.exceptions import NoSuchElementException, WebDriverExceptio
 from hijridate import Hijri, Gregorian
 from DatabaseConnection import DatabaseConnection
 
+
 class DateScraper:
     def __init__(self):
         try:
@@ -87,7 +88,6 @@ class DateScraper:
             print("Important Dates Data was inserted in the database successfully!")
         except NoSuchElementException:
             print("Couldn't find the element")
-
 
 
 if __name__ == '__main__':

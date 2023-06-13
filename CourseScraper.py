@@ -5,6 +5,7 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException, WebDriverException
 from DatabaseConnection import DatabaseConnection
 
+
 class CourseScraper:
     def __init__(self):
         try:
@@ -45,8 +46,7 @@ class CourseScraper:
             course_names = self.driver.find_elements(By.XPATH, "//table[@id='summary_tab']//td[@class='default'][4]")
             credit_hours = self.driver.find_elements(By.XPATH, "//table[@id='summary_tab']//td[@class='default'][5]")
             # Find "الشعب" which is a clickable text the leads to the sections page for each course on the page
-            view_section = self.driver.find_elements(By.XPATH, "//table[@id='summary_tab']//td[@class='default'][1]//a[text()='الشعب']")
-
+            view_section = self.driver.find_elements(By.XPATH,"//table[@id='summary_tab']//td[@class='default'][1]//a[text()='الشعب']")
 
             # Loop to extract Courses information and their sections
             for i in range(len(course_codes)):
@@ -79,8 +79,8 @@ class CourseScraper:
                 section_blds = self.driver.find_elements(By.XPATH, "//td[@class='dddefault'][6]")  # المبنى
                 section_rooms = self.driver.find_elements(By.XPATH, "//td[@class='dddefault'][7]")  # الغرفة
                 section_instrs = self.driver.find_elements(By.XPATH, "//td[@class='dddefault'][8]")  # الاساتذة
-                section_links = self.driver.find_elements(By.XPATH, "//td[@class='dddefault'][9]/a")  # تفاصيل (this contains the url of the section and is used to merge lectures of same CRN)
-
+                section_links = self.driver.find_elements(By.XPATH,
+                                                          "//td[@class='dddefault'][9]/a")  # تفاصيل (this contains the url of the section and is used to merge lectures of same CRN)
 
                 # Loop through all the sections and extract their information
                 for i in range(len(crns)):
