@@ -152,11 +152,11 @@ def Check_if_firstmessage(User_input):
 
         extracted_number = extract_number(User_input)
 
-        message, tag = HandelInput(extracted_number, User_input)
+        message, tag = HandleInput(extracted_number, User_input)
     return message, tag
 
 
-def HandelInput(extracted_number, User_input):
+def HandleInput(extracted_number, User_input):
     # Define a method for dealing with text and numbers
     tag = "no_tag"
     # if the text was not known by the model, then the message will be the following
